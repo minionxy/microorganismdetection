@@ -2,6 +2,21 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Statistics from './Statistics';
 import LoadingSpinner from '../components/LoadingSpinner';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  BarChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Bar,
+  ResponsiveContainer
+} from 'recharts';
+
+const COLORS = ['#34D399', '#EF4444', '#FBBF24']; // green, red, yellow
 
 const StatisticsPage = () => {
   const [statistics, setStatistics] = useState({
@@ -10,6 +25,7 @@ const StatisticsPage = () => {
     failed_detections: 0,
     processing_detections: 0,
     organism_statistics: {},
+    latest_detections: [],
     success_rate: 0
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -18,29 +34,18 @@ const StatisticsPage = () => {
   useEffect(() => {
     const fetchStatistics = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/statistics');
-        console.log('API Response:', response.data);
-        
-        if (response.data) {
-          const data = response.data;
-          const total = data.total_detections || 0;
-          const completed = data.status_counts?.completed || 0;
-          const failed = data.status_counts?.failed || 0;
-          
-          // Calculate success rate
-          const successRate = total > 0 ? (completed / (completed + failed)) * 100 : 0;
-          
-          setStatistics({
-            total_detections: total,
-            completed_detections: completed,
-            failed_detections: failed,
-            processing_detections: data.status_counts?.processing || 0,
-            organism_statistics: data.organism_counts || {},
-            success_rate: successRate.toFixed(1)
-          });
-        } else {
-          throw new Error('Invalid response format');
-        }
+        const { data } = await axios.get('http://localhost:5000/api/statistics');
+        console.log('API Response:', data);
+
+        setStatistics({
+          total_detections: data.total_detections ?? 0,
+          completed_detections: data.completed_detections ?? 0,
+          failed_detections: data.failed_detections ?? 0,
+          processing_detections: data.processing_detections ?? 0,
+          organism_statistics: data.organism_statistics ?? {},
+          latest_detections: data.latest_detections ?? [],
+          success_rate: Number(data.success_rate ?? 0).toFixed(1)
+        });
       } catch (err) {
         console.error('Error fetching statistics:', err);
         setError('Failed to load statistics. Please try again later.');
@@ -77,7 +82,73 @@ const StatisticsPage = () => {
     );
   }
 
-  return <Statistics statistics={statistics} />;
+  // Prepare chart data
+  const detectionStatusData = [
+    { name: 'Completed', value: statistics.completed_detections },
+    { name: 'Failed', value: statistics.failed_detections },
+    { name: 'Processing', value: statistics.processing_detections }
+  ];
+
+  // Top organisms (limit to 10 for readability)
+  const organismData = Object.entries(statistics.organism_statistics)
+    .slice(0, 10)
+    .map(([name, count]) => ({ name, count }));
+
+  return (
+    <div className="min-h-screen p-6 bg-gray-50">
+      {/* Existing summary component */}
+      <Statistics statistics={statistics} />
+
+      {/* Charts Section */}
+      <div className="mt-10 grid gap-8 lg:grid-cols-2">
+        {/* Pie Chart */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 text-center">
+            Detection Status Breakdown
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={detectionStatusData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label
+              >
+                {detectionStatusData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Bar Chart */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 text-center">
+            Top Detected Organisms
+          </h2>
+          {organismData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={organismData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-center text-gray-500">No organism data to display.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default StatisticsPage;
