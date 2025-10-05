@@ -3,7 +3,6 @@ from __future__ import with_statement
 import logging
 from logging.config import fileConfig
 
-from flask import current_app
 
 from alembic import context
 
@@ -16,23 +15,16 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
+# Set your database URL here (matches backend/config.py)
+import os
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///microorganism_detection.db')
+config.set_main_option('sqlalchemy.url', db_url)
 
-def get_engine():
-    try:
-        # this works with Flask-SQLAlchemy<3 and Alchemical
-        return current_app.extensions['migrate'].db.get_engine()
-    except TypeError:
-        # this works with Flask-SQLAlchemy>=3
-        return current_app.extensions['migrate'].db.engine
-
-
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-config.set_main_option(
-    'sqlalchemy.url', str(get_engine().url).replace('%', '%%'))
-target_db = current_app.extensions['migrate'].db
+# Import your models' metadata for autogenerate
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from models import db
+target_metadata = db.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -40,10 +32,9 @@ target_db = current_app.extensions['migrate'].db
 # ... etc.
 
 
+
 def get_metadata():
-    if hasattr(target_db, 'metadatas'):
-        return target_db.metadatas[None]
-    return target_db.metadata
+    return target_metadata
 
 
 def run_migrations_offline():
@@ -67,17 +58,14 @@ def run_migrations_offline():
         context.run_migrations()
 
 
+
 def run_migrations_online():
-    """Run migrations in 'online' mode.
+    """Run migrations in 'online' mode."""
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
+    from sqlalchemy import create_engine
 
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
-    # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
     def process_revision_directives(context, revision, directives):
         if getattr(config.cmd_opts, 'autogenerate', False):
             script = directives[0]
@@ -85,14 +73,13 @@ def run_migrations_online():
                 directives[:] = []
                 logger.info('No changes in schema detected.')
 
-    connectable = get_engine()
+    connectable = create_engine(config.get_main_option('sqlalchemy.url'))
 
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
-            process_revision_directives=process_revision_directives,
-            **current_app.extensions['migrate'].configure_args
+            process_revision_directives=process_revision_directives
         )
 
         with context.begin_transaction():

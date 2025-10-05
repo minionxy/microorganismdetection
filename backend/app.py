@@ -669,13 +669,20 @@ def upload_image():
                 "details": str(e)
             }), 500
         
+        # Get user info from form
+        name = request.form.get('name')
+        email = request.form.get('email')
+        print(f"User name: {name}, email: {email}")
+
         # Create detection record
         print("Creating detection record...")
         from models.detection import Detection
         detection = Detection(
             filename=unique_filename,
             original_image_path=filepath,
-            status='processing'
+            status='processing',
+            name=name,
+            email=email
         )
         db.session.add(detection)
         db.session.commit()
@@ -746,7 +753,16 @@ def upload_image():
         print(f"\n=== Processing Complete ===")
         print(f"Final status: {detection.status}")
         print(f"Detection ID: {detection.id}")
-        
+
+        # Send results email if detection completed and email provided
+        if detection.status == 'completed' and detection.email:
+            try:
+                from email_service import send_detection_results_email
+                send_detection_results_email(detection.email, detection)
+                print(f"Results email sent to {detection.email}")
+            except Exception as e:
+                print(f"Failed to send results email: {e}")
+
         return jsonify({
             "success": True,
             "detection_id": detection.id,
@@ -805,7 +821,7 @@ def get_all_detections():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
-        from models.detection import Detection
+        from models import Detection
         detections = Detection.query.order_by(Detection.timestamp.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )

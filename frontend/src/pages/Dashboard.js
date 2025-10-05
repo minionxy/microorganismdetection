@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiUpload, FiBarChart2, FiAlertTriangle, FiCheckCircle, FiClock } from 'react-icons/fi';
+import { FiUpload, FiBarChart2, FiAlertTriangle, FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
 import StatCard from '../components/StatCard';
 import DetectionList from '../components/DetectionList';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const Dashboard = () => {
+  // Email modal state moved to Upload.js
+  // const [showEmailModal, setShowEmailModal] = useState(true);
+  // const [email, setEmail] = useState('');
+  // const [emailError, setEmailError] = useState('');
   const [stats, setStats] = useState([
     { title: 'Total Scans', value: '0', icon: <FiBarChart2 className="w-6 h-6" />, change: '0%', trend: 'up' },
     { title: 'High Risk', value: '0', icon: <FiAlertTriangle className="w-6 h-6" />, change: '0%', trend: 'up', color: 'red' },
@@ -15,20 +19,27 @@ const Dashboard = () => {
   ]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+  
+  // Email modal logic handled in Upload.js
+
+  // Email modal logic handled in Upload.js
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await axios.get('/api/statistics');
         const data = response.data;
-        
         const total = data.total_detections || 0;
-        const completed = data.status_counts?.completed || 0;
-        const failed = data.status_counts?.failed || 0;
-        const processing = data.status_counts?.processing || 0;
-        
-        // Count high risk organisms
-        const highRiskCount = Object.entries(data.organism_counts || {}).reduce((acc, [_, count]) => acc + count, 0);
-        
+        const completed = data.completed_detections || 0;
+        const failed = data.failed_detections || 0;
+        // No explicit processing count in backend, so set to 0 or add if needed
+        const processing = 0;
+        // High risk: just use total organisms for now
+        const highRiskCount = Object.entries(data.organism_statistics || {}).reduce((acc, [_, count]) => acc + count, 0);
         setStats([
           { title: 'Total Scans', value: total.toString(), icon: <FiBarChart2 className="w-6 h-6" />, change: '0%', trend: 'up' },
           { title: 'High Risk', value: highRiskCount.toString(), icon: <FiAlertTriangle className="w-6 h-6" />, change: '0%', trend: 'up', color: 'red' },
@@ -37,7 +48,7 @@ const Dashboard = () => {
         ]);
       } catch (error) {
         console.error('Error fetching statistics:', error);
-        toast.error('Failed to load dashboard statistics');
+        toast.error('Failed to load statistics');
       } finally {
         setIsLoading(false);
       }
@@ -56,8 +67,9 @@ const Dashboard = () => {
 
   return (
     <div className="pt-20 pb-10 px-4 sm:px-6 lg:px-8">
+      {/* Email Request Modal handled in Upload.js after upload */}
+
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="md:flex md:items-center md:justify-between mb-8">
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>

@@ -22,23 +22,19 @@ const History = () => {
           per_page: 10
         }
       });
-      
-      console.log('API Response:', response.data);
-      
-      if (response.data && response.data.success) {
-        setDetections(response.data.detections || []);
-        setPagination({
-          page: response.data.pagination?.page || page,
-          perPage: response.data.pagination?.per_page || 10,
-          totalPages: response.data.pagination?.total_pages || 1,
-          totalItems: response.data.pagination?.total_items || 0
-        });
-      } else {
-        throw new Error(response.data?.error || 'Failed to fetch history');
-      }
+      const data = response.data;
+      setDetections(data.detections || []);
+      setPagination({
+        page: data.page || page,
+        perPage: 10,
+        totalPages: data.pages || 1,
+        totalItems: data.total || 0
+      });
     } catch (error) {
       console.error('Error fetching history:', error);
       toast.error(error.response?.data?.error || 'Failed to load detection history');
+      setDetections([]);
+      setPagination({ page: 1, perPage: 10, totalPages: 1, totalItems: 0 });
     } finally {
       setIsLoading(false);
     }

@@ -48,13 +48,31 @@ class Config:
     
     # CORS Configuration
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
-    
+    CORS_SUPPORTS_CREDENTIALS = True
+    CORS_HEADERS = 'Content-Type'    
     # Directories
     BASE_DIR = Path(__file__).parent
     UPLOAD_DIR = BASE_DIR / UPLOAD_FOLDER
     PROCESSED_DIR = BASE_DIR / 'processed'
     MODELS_DIR = BASE_DIR / 'models'
     LOGS_DIR = BASE_DIR / 'logs'
+    
+    
+    # CORS Configuration
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
+    
+
+
+    # CORS Configuration
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
+    
+    # Email Configuration
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', '1', 't']
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@microdetection.com')
     
     # Create directories if they don't exist
     def __init__(self):

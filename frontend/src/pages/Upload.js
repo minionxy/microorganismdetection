@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FiUpload, FiX, FiImage } from 'react-icons/fi';
@@ -5,11 +6,31 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
+
+
 const UploadPage = () => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const handleNameChange = (e) => {
+    setName(e.target.value);
+    setNameError(e.target.value.trim() ? '' : 'Name is required');
+  };
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    setEmailError(validateEmail(e.target.value) ? '' : 'Please enter a valid email address');
+  };
 
   const onDrop = useCallback((acceptedFiles) => {
     const selectedFile = acceptedFiles[0];
@@ -18,12 +39,10 @@ const UploadPage = () => {
         toast.error('Please upload an image file (JPEG, PNG, etc.)');
         return;
       }
-      
       if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
         toast.error('File size should be less than 5MB');
         return;
       }
-      
       setFile(selectedFile);
       const reader = new FileReader();
       reader.onload = () => setPreview(reader.result);
@@ -51,15 +70,23 @@ const UploadPage = () => {
       toast.error('Please select an image to upload');
       return;
     }
+    if (!name.trim()) {
+      setNameError('Name is required');
+      return;
+    }
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('name', name);
+    formData.append('email', email);
 
     try {
       setIsUploading(true);
-      
       const response = await axios.post('http://localhost:5000/api/upload', formData);
-  
       if (response.data && response.data.detection_id) {
         toast.success('Image uploaded successfully! Processing your sample...');
         navigate(`/results/${response.data.detection_id}`);
@@ -67,10 +94,7 @@ const UploadPage = () => {
         throw new Error('Unexpected response from server');
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      
       let errorMessage = 'Failed to upload image. Please try again.';
-      
       if (error.code === 'ECONNABORTED') {
         errorMessage = 'Request timed out. Please try again.';
       } else if (error.response) {
@@ -82,7 +106,6 @@ const UploadPage = () => {
       } else if (error.request) {
         errorMessage = 'No response from server. Please check your connection.';
       }
-      
       toast.error(errorMessage);
     } finally {
       setIsUploading(false);
@@ -91,6 +114,7 @@ const UploadPage = () => {
 
   return (
     <div className="pt-20 pb-10 px-4 sm:px-6 lg:px-8">
+  {/* EmailModal removed: modal is no longer used, email is collected in the form above */}
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Water Sample</h1>
@@ -99,11 +123,42 @@ const UploadPage = () => {
           </p>
         </div>
 
+
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          {/* User Info Section */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Your Information</h2>
+            <div className="mb-4">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={handleNameChange}
+                className={`w-full px-3 py-2 border ${nameError ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                placeholder="Your Name"
+                required
+              />
+              {nameError && <p className="mt-1 text-sm text-red-600">{nameError}</p>}
+            </div>
+            <div className="mb-4">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={handleEmailChange}
+                className={`w-full px-3 py-2 border ${emailError ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500`}
+                placeholder="your.email@example.com"
+                required
+              />
+              {emailError && <p className="mt-1 text-sm text-red-600">{emailError}</p>}
+            </div>
+          </div>
+
           {/* Upload Section */}
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Upload Image</h2>
-            
             {!file ? (
               <div 
                 {...getRootProps()} 
