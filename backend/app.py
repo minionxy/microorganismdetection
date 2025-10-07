@@ -9,7 +9,10 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from config import Config
 from flask import Flask, send_from_directory
+from flask_mail import Mail
+import logging
 
+logging.basicConfig(level=logging.DEBUG)
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -35,6 +38,7 @@ def create_app():
     
     # Initialize extensions
     db.init_app(app)
+
     
     # Configure CORS
     CORS(app, resources={
@@ -60,6 +64,8 @@ def create_app():
     return app
 
 app = create_app()
+
+mail=Mail(app)
 
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
@@ -755,13 +761,39 @@ def upload_image():
         print(f"Detection ID: {detection.id}")
 
         # Send results email if detection completed and email provided
+        # In the upload_image function, update the email sending part:
+
         if detection.status == 'completed' and detection.email:
             try:
-                from email_service import send_detection_results_email
-                send_detection_results_email(detection.email, detection)
-                print(f"Results email sent to {detection.email}")
+                from services.email_service import send_detection_results_email
+                
+                # Parse detection_results if it's a string
+                try:
+                    detection_results = json.loads(detection.detection_results) if detection.detection_results else {}
+                except (json.JSONDecodeError, AttributeError):
+                    detection_results = {}
+                
+                # Prepare detection results
+                results = {
+                    'organisms': json.loads(detection.detected_organisms) if detection.detected_organisms else [],
+                    'recommendations': json.loads(detection.water_usage_recommendations) if detection.water_usage_recommendations else []
+                }
+                
+                # Get processed image path safely
+                processed_image_path = detection_results.get('processed_image_path') if isinstance(detection_results, dict) else None
+                
+                # Send email with detection results
+                send_detection_results_email(
+                    recipient_email=detection.email,
+                    detection_id=str(detection.id),
+                    results=results,
+                    gram_stained_image_path=detection.processed_image_path,
+                    detected_image_path=processed_image_path
+                )
             except Exception as e:
-                print(f"Failed to send results email: {e}")
+                print(f"Failed to send results email: {str(e)}")
+                import traceback
+                print("Email error details:", traceback.format_exc())
 
         return jsonify({
             "success": True,

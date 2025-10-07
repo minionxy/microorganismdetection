@@ -70,9 +70,9 @@ class Config:
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', '1', 't']
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@microdetection.com')
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'gauthamkrishnar6@gmail.com')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'ovxr ptwu hslt fawi')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'gauthamkrishnar6@gmail.com')
     
     # Create directories if they don't exist
     def __init__(self):
